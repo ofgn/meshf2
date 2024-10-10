@@ -28,6 +28,7 @@ module unstructured_grid
         procedure :: write_vtk_legacy                               ! Write legacy VTK file in binary or ASCII
         procedure :: blank_on_point_mask                            ! Blank points and cells based on a point mask
         procedure :: blank_on_cell_mask                             ! Blank points and cells based on a cell mask
+        procedure :: reset                                          ! Clear the unstructured grid
     end type UnstructuredGrid
 
 contains
@@ -117,9 +118,9 @@ contains
             end if
 
             ! If 2D points, set the z-coordinate to 0
-            if (n_dimensions .eq. 2) then
-                self%points(3, i) = 0.0d0
-            end if
+            ! if (n_dimensions .eq. 2) then
+            !     self%points(3, i) = 0.0d0
+            ! end if
 
             if (io_status .ne. 0) then
                 call report("- Status:                       (ERROR) Error reading point: "//trim(itoa(i)), is_error=.true.)
@@ -251,7 +252,6 @@ contains
         integer(kind=custom_int), allocatable :: full_connectivity(:)   ! Complete cell connectivity array
         integer(kind=custom_int) :: i, j                                ! Loop variables
         real(real64) :: start_time, end_time                            ! Timing variables
-        character(len=1) :: LF                                          ! Line feed character for file format
         logical :: binary                                               ! Flag to determine binary or ASCII format
 
         call cpu_time(start_time)
@@ -295,10 +295,10 @@ contains
         end do
 
         if (binary) then
-            write (unit) "# vtk DataFile Version 3.0"//LF
-            write (unit) "vtk"//LF
-            write (unit) "BINARY"//LF
-            write (unit) "DATASET UNSTRUCTURED_GRID"//LF
+            write (unit) "# vtk DataFile Version 3.0"//lf
+            write (unit) "vtk"//lf
+            write (unit) "BINARY"//lf
+            write (unit) "DATASET UNSTRUCTURED_GRID"//lf
         else
             write (unit, "(a)") "# vtk DataFile Version 3.0"
             write (unit, "(a)") "vtk"
@@ -307,9 +307,9 @@ contains
         end if
 
         if (binary) then
-            write (unit) "POINTS "//trim(itoa(self%n_points))//" double"//LF
+            write (unit) "POINTS "//trim(itoa(self%n_points))//" double"//lf
             write (unit) self%points
-            write (unit) LF
+            write (unit) lf
         else
             write (unit, "(A, I0, A)") "POINTS ", self%n_points, " double"
             do i = 1, self%n_points
@@ -318,9 +318,9 @@ contains
         end if
 
         if (binary) then
-            write (unit) "CELLS "//trim(itoa(self%n_cells))//" "//trim(itoa(size(full_connectivity)))//LF
+            write (unit) "CELLS "//trim(itoa(self%n_cells))//" "//trim(itoa(size(full_connectivity)))//lf
             write (unit) full_connectivity
-            write (unit) LF
+            write (unit) lf
         else
             write (unit, "(A, I0, A, I0)") "CELLS ", self%n_cells  , " ", size(full_connectivity)
             do i = 1, size(full_connectivity)
@@ -329,9 +329,9 @@ contains
         end if
 
         if (binary) then
-            write (unit) "CELL_TYPES "//trim(itoa(self%n_cells))//LF
-                write (unit) self%cell_types
-                write (unit) LF
+            write (unit) "CELL_TYPES " // trim(itoa(self%n_cells)) // lf
+            write (unit) int(self%cell_types, kind=custom_int)
+            write (unit) lf
         else
             write (unit, "(A, I0)") "CELL_TYPES ", self%n_cells
             do i = 1, self%n_cells
@@ -515,6 +515,30 @@ contains
             //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
         call report(divider)
     end subroutine blank_on_cell_mask
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Reset the unstructured grid by deallocating all arrays.
+    ! @param[inout] self The unstructured grid to reset.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine reset(self)
+        implicit none
+
+        class(UnstructuredGrid), intent(inout) :: self                      ! The unstructured grid to clear
+
+        call report(banner("CLEARING"))
+        call report("- Status:                       Started")
+
+        deallocate(self%points)
+        deallocate(self%points_per_cell)
+        deallocate(self%cell_connectivity)
+        deallocate(self%cell_types)
+
+        self%n_points = 0
+        self%n_cells = 0
+
+        call report("- Status:                       Completed")
+        call report(divider)
+    end subroutine reset
 
     ! subroutine build_edges_tetrahedral(self)
     !     implicit none

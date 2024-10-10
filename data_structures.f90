@@ -28,6 +28,22 @@ module data_structures
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Defines a node in the linked list.
     ! ---------------------------------------------------------------------------------------------------
+    type :: CircularLinkedList
+        type(ListNode), pointer :: head => null()               ! Pointer to the head of the list
+        type(ListNode), pointer :: tail => null()               ! Pointer to the tail of the list
+        integer(kind=custom_int) :: size = 0                    ! Number of elements in the list
+    contains
+        procedure :: prepend => circular_linked_list_prepend             ! Insert an element at the start
+        procedure :: append => circular_linked_list_append               ! Insert an element at the end
+        procedure :: remove => circular_linked_list_remove               ! Remove an element from the list
+        procedure :: contains => circular_linked_list_contains           ! Check if an element exists in the list
+        procedure :: clear => circular_linked_list_clear                 ! Clear the list
+        procedure :: print => circular_linked_list_print                 ! Print the elements of the list
+    end type CircularLinkedList
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Defines a node in the linked list.
+    ! ---------------------------------------------------------------------------------------------------
     type :: ListNode
         integer(kind=custom_int) :: value               ! Value of the node
         type(ListNode), pointer :: next => null()       ! Pointer to the next node
@@ -44,7 +60,7 @@ module data_structures
         procedure :: initialise => hash_map_initialise          ! Initialise the hash map
         procedure :: insert => hash_map_insert                  ! Insert a key-value pair
         procedure :: delete => hash_map_delete                  ! Delete a key-value pair
-        procedure :: find => hash_map_find                      ! Find a value by key
+        procedure :: get => hash_map_get                      ! Find a value by key
         procedure :: clear => hash_map_clear                    ! Clear the hash map
         procedure :: resize => hash_map_resize                  ! Resize the hash map
     end type HashMap
@@ -80,23 +96,19 @@ module data_structures
     end type Set
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Defines a Directed Acyclic Graph (DAG).
+    ! @brief Defines a priority queue.
     ! ---------------------------------------------------------------------------------------------------
-    type :: DirectedAcyclicGraph
-        type(HashMap) :: adjacency_list                         ! Adjacency list represented as a hash map
-        type(Set) :: nodes                                       ! Set of nodes in the DAG
+    type :: PriorityQueue
+        real(kind=custom_real), allocatable :: keys(:)  ! Priorities (real type)
+        integer, allocatable :: values(:)               ! Associated values (optional)
+        integer :: size     ! Current number of elements in the queue
+        integer :: capacity ! Maximum capacity of the queue
     contains
-        procedure :: initialise => dag_initialise
-        procedure :: add_node => dag_add_node
-        procedure :: add_edge => dag_add_edge
-        procedure :: remove_node => dag_remove_node
-        procedure :: remove_edge => dag_remove_edge
-        procedure :: contains_node => dag_contains_node
-        procedure :: contains_edge => dag_contains_edge
-        procedure :: topological_sort => dag_topological_sort
-        procedure :: clear => dag_clear
-        procedure :: print => dag_print
-    end type DirectedAcyclicGraph
+        procedure :: initialise => priority_queue_initialise
+        procedure :: insert => priority_queue_insert
+        procedure :: pop => priority_queue_pop
+        procedure :: is_empty => priority_queue_is_empty
+    end type PriorityQueue
 
 contains
 
@@ -129,7 +141,6 @@ contains
         ! Increment the size of the linked list
         self%size = self%size + 1
     end subroutine linked_list_prepend
-
 
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Insert an element at the end of the linked list.
@@ -267,6 +278,200 @@ contains
             current => current%next
         end do
     end subroutine linked_list_print
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Insert an element at the end of the circular linked list.
+    ! @param[inout] self The circular linked list.
+    ! @param[in] value The value to insert.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine circular_linked_list_append(self, value)
+        implicit none
+        class(CircularLinkedList), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: value
+        type(ListNode), pointer :: new_node
+        integer :: alloc_stat
+
+        ! Allocate a new node
+        allocate(new_node, stat=alloc_stat)
+        if (alloc_stat /= 0) then
+            call report("Error: Failed to allocate new node in circular_linked_list_append.", is_error=.true.)
+            return
+        end if
+
+        new_node%value = value
+
+        if (.not. associated(self%head)) then
+            ! List is empty
+            self%head => new_node
+            self%tail => new_node
+            new_node%next => new_node  ! Point to itself to make it cyclic
+        else
+            ! Insert at the end
+            new_node%next => self%head
+            self%tail%next => new_node
+            self%tail => new_node
+        end if
+
+        self%size = self%size + 1
+    end subroutine circular_linked_list_append
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Insert an element at the start of the circular linked list.
+    ! @param[inout] self The circular linked list.
+    ! @param[in] value The value to insert.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine circular_linked_list_prepend(self, value)
+        implicit none
+        class(CircularLinkedList), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: value
+        type(ListNode), pointer :: new_node
+        integer :: alloc_stat
+
+        ! Allocate a new node
+        allocate(new_node, stat=alloc_stat)
+        if (alloc_stat /= 0) then
+            call report("Error: Failed to allocate new node in circular_linked_list_prepend.", is_error=.true.)
+            return
+        end if
+
+        new_node%value = value
+
+        if (.not. associated(self%head)) then
+            ! List is empty
+            self%head => new_node
+            self%tail => new_node
+            new_node%next => new_node  ! Point to itself
+        else
+            ! Insert at the beginning
+            new_node%next => self%head
+            self%tail%next => new_node
+            self%head => new_node
+        end if
+
+        self%size = self%size + 1
+    end subroutine circular_linked_list_prepend
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Remove an element from the circular linked list.
+    ! @param[inout] self The circular linked list.
+    ! @param[in] value The value to remove.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine circular_linked_list_remove(self, value)
+        implicit none
+        class(CircularLinkedList), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: value
+        type(ListNode), pointer :: current, previous
+        logical :: found
+
+        if (.not. associated(self%head)) return  ! List is empty
+
+        found = .false.
+        previous => self%tail
+        current => self%head
+
+        do
+            if (current%value == value) then
+                found = .true.
+                exit
+            end if
+            previous => current
+            current => current%next
+            if (associated(current, self%head)) exit  ! Completed a full cycle
+        end do
+
+        if (found) then
+            if (associated(current, self%head)) then
+                ! Removing the head
+                self%head => current%next
+                self%tail%next => self%head
+            else if (associated(current, self%tail)) then
+                ! Removing the tail
+                self%tail => previous
+                self%tail%next => self%head
+            else
+                previous%next => current%next
+            end if
+            deallocate(current)
+            self%size = self%size - 1
+
+            ! If the list becomes empty
+            if (self%size == 0) then
+                self%head => null()
+                self%tail => null()
+            end if
+        end if
+    end subroutine circular_linked_list_remove
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Check if the circular linked list contains a specific element.
+    ! @param[in] self The circular linked list.
+    ! @param[in] value The value to check.
+    ! @return contains Flag indicating whether the value is in the list.
+    ! ---------------------------------------------------------------------------------------------------
+    logical function circular_linked_list_contains(self, value)
+        implicit none
+        class(CircularLinkedList), intent(in) :: self
+        integer(kind=custom_int), intent(in) :: value
+        type(ListNode), pointer :: current
+
+        circular_linked_list_contains = .false.
+
+        if (.not. associated(self%head)) return
+
+        current => self%head
+        do
+            if (current%value == value) then
+                circular_linked_list_contains = .true.
+                return
+            end if
+            current => current%next
+            if (associated(current, self%head)) exit  ! Completed a full cycle
+        end do
+    end function circular_linked_list_contains
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Print the elements of the circular linked list.
+    ! @param[in] self The circular linked list.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine circular_linked_list_print(self)
+        implicit none
+        class(CircularLinkedList), intent(in) :: self
+        type(ListNode), pointer :: current
+
+        if (.not. associated(self%head)) then
+            print *, "List is empty."
+            return
+        end if
+
+        current => self%head
+        do
+            print *, current%value
+            current => current%next
+            if (associated(current, self%head)) exit  ! Completed a full cycle
+        end do
+    end subroutine circular_linked_list_print
+
+    subroutine circular_linked_list_clear(self)
+        implicit none
+        class(CircularLinkedList), intent(inout) :: self
+        type(ListNode), pointer :: current, next_node
+    
+        if (.not. associated(self%head)) return
+    
+        ! Break the cycle
+        self%tail%next => null()
+    
+        current => self%head
+        do while (associated(current))
+            next_node => current%next
+            deallocate(current)
+            current => next_node
+        end do
+    
+        self%head => null()
+        self%tail => null()
+        self%size = 0
+    end subroutine circular_linked_list_clear
 
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Initialise the hash map with a given size and value length.
@@ -411,7 +616,7 @@ contains
     ! @param[out, optional] value The value associated with the key.
     ! @return found Flag indicating if the key was found.
     ! ---------------------------------------------------------------------------------------------------
-    function hash_map_find(self, key, value) result(found)
+    function hash_map_get(self, key, value) result(found)
         implicit none
 
         class(HashMap), intent(in) :: self                          ! The hash map
@@ -451,7 +656,7 @@ contains
             end if
             current_node => current_node%next
         end do
-    end function hash_map_find
+    end function hash_map_get
 
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Clear the hash map, deallocating all nodes.
@@ -668,178 +873,149 @@ contains
     end subroutine set_clear
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Initialise the DAG.
-    ! @param[inout] self The DAG.
-    ! @param[in] initial_size The initial size of the adjacency list hash map.
+    ! @brief Initialise the priority queue.
+    ! @param[inout] self The priority queue to initialise.
+    ! @param[in] capacity The initial capacity of the queue.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine dag_initialise(self, initial_size)
-        implicit none
-        class(DirectedAcyclicGraph), intent(inout) :: self
-        integer(kind=custom_int), intent(in), optional :: initial_size
-        integer(kind=custom_int) :: size_to_use
-
-        if (present(initial_size)) then
-            size_to_use = initial_size
-        else
-            size_to_use = 16  ! Default initial size
-        end if
-
-        call self%adjacency_list%initialise(size_to_use)
-        call self%nodes%initialise()
-    end subroutine dag_initialise
+    subroutine priority_queue_initialise(self, capacity)
+        class(PriorityQueue), intent(inout) :: self
+        integer, intent(in) :: capacity
+        
+        self%capacity = capacity
+        self%size = 0
+        allocate(self%keys(capacity))
+        allocate(self%values(capacity))
+    end subroutine priority_queue_initialise
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Add a node to the DAG.
-    ! @param[inout] self The DAG.
-    ! @param[in] node The node identifier to add.
+    ! @brief Check if the priority queue is empty.
+    ! @param[in] self The priority queue.
+    ! @return is_empty Flag indicating if the queue is empty.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine dag_add_node(self, node)
-        implicit none
-        class(DirectedAcyclicGraph), intent(inout) :: self
-        integer(kind=custom_int), intent(in) :: node
-        integer(kind=custom_int), allocatable :: key(:)
-        integer(kind=custom_int), allocatable :: empty_value(:)
-
-        ! Check if node already exists
-        if (self%nodes%contains(node)) return
-
-        ! Insert node into the set
-        call self%nodes%insert(node)
-
-        ! Initialize adjacency list for the node with an empty list
-        allocate(key(1))
-        key(1) = node
-        allocate(empty_value(0))
-        call self%adjacency_list%insert(key, empty_value)
-        deallocate(key)
-        deallocate(empty_value)
-    end subroutine dag_add_node
+    logical function priority_queue_is_empty(self)
+        class(PriorityQueue), intent(in) :: self
+        priority_queue_is_empty = (self%size == 0)
+    end function priority_queue_is_empty
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Remove a node from the DAG.
-    ! @param[inout] self The DAG.
-    ! @param[in] node The node identifier to remove.
+    ! @brief Insert an element into the priority queue.
+    ! @param[inout] self The priority queue.
+    ! @param[in] key The priority of the element.
+    ! @param[in] value The value to insert.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine dag_remove_node(self, node)
-        implicit none
-        class(DirectedAcyclicGraph), intent(inout) :: self
-        integer(kind=custom_int), intent(in) :: node
-        integer(kind=custom_int), allocatable :: key(:), value(:)
-        integer(kind=custom_int) :: i, j
-        logical :: found
+    subroutine priority_queue_insert(self, key, value)
+        class(PriorityQueue), intent(inout) :: self
+        real(kind=custom_real), intent(in) :: key
+        integer, intent(in) :: value
 
-        ! Remove node from the set
-        call self%nodes%remove(node)
-
-        ! Remove the node's adjacency list
-        allocate(key(1))
-        key(1) = node
-        call self%adjacency_list%delete(key)
-        deallocate(key)
-
-        ! Remove all edges pointing to this node
-        do i = 1, self%adjacency_list%size
-            allocate(key(1))
-            key(1) = i  ! Assuming keys are sequential; adjust if keys are not sequential
-            found = self%adjacency_list%find(key, value)
-            if (found) then
-                ! Remove 'node' from the adjacency list
-                do j = 1, size(value)
-                    if (value(j) == node) then
-                        value(j) = value(size(value))
-                        call array_resize(value, size(value) - 1)
-                        exit
-                    end if
-                end do
-                call self%adjacency_list%insert(key, value)
-                deallocate(value)
-            end if
-            deallocate(key)
-        end do
-    end subroutine dag_remove_node
-
-    ! ---------------------------------------------------------------------------------------------------
-    ! @brief Add a directed edge to the DAG.
-    ! @param[inout] self The DAG.
-    ! @param[in] from_node The source node identifier.
-    ! @param[in] to_node The destination node identifier.
-    ! @return success Flag indicating if the edge was added successfully.
-    ! ---------------------------------------------------------------------------------------------------
-    logical function dag_add_edge(self, from_node, to_node)
-    implicit none
-    class(DirectedAcyclicGraph), intent(inout) :: self
-    integer(kind=custom_int), intent(in) :: from_node, to_node
-    integer(kind=custom_int), allocatable :: key(:), value(:)
-    logical :: found, cycle_detected
-    integer(kind=custom_int) :: alloc_stat
-
-    dag_add_edge = .false.
-
-    ! Ensure both nodes exist
-    if (.not. self%nodes%contains(from_node)) then
-        call report("Error (dag_add_edge): 'from_node' does not exist.", is_error=.true.)
-        return
-    end if
-    if (.not. self%nodes%contains(to_node)) then
-        call report("Error (dag_add_edge): 'to_node' does not exist.", is_error=.true.)
-        return
-    end if
-
-    ! Check if the edge already exists
-    allocate(key(1))
-    key(1) = from_node
-    found = self%adjacency_list%find(key, value)
-    if (found) then
-        if (any(value == to_node)) then
-            ! Edge already exists
-            dag_add_edge = .true.
-            deallocate(key)
-            deallocate(value)
+        if (self%size >= self%capacity) then
+            print *, 'Error: Priority queue is full!'
             return
         end if
-    else
-        ! Initialize adjacency list for 'from_node' if not found
-        allocate(value(0))
-    end if
-    deallocate(key)
 
-    ! Temporarily add the edge
-    allocate(key(1))
-    key(1) = from_node
-    if (found) then
-        call self%adjacency_list%find(key, value)
-        call array_resize(value, size(value) + 1)
-        value(size(value)) = to_node
-    else
-        allocate(value(1))
-        value(1) = to_node
-    end if
-    call self%adjacency_list%insert(key, value)
-    deallocate(key)
-    deallocate(value)
+        ! Insert at the end and then "bubble up" to maintain heap property
+        self%size = self%size + 1
+        self%keys(self%size) = key
+        self%values(self%size) = value
+        call priority_queue_bubble_up(self)
+    end subroutine priority_queue_insert
 
-    ! Check for cycles
-    cycle_detected = dag_detect_cycle(self)
-    if (cycle_detected) then
-        ! Revert the addition
-        allocate(key(1))
-        key(1) = from_node
-        call self%adjacency_list%find(key, value)
-        value = [to_node]  ! Simplistic removal; adjust as needed
-        call self%adjacency_list%insert(key, value)
-        deallocate(key)
-        deallocate(value)
-        call report("Error (dag_add_edge): Adding this edge creates a cycle.", is_error=.true.)
-        return
-    end if
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Extract the minimum element from the priority queue.
+    ! @param[inout] self The priority queue.
+    ! @param[out] min_key The minimum key.
+    ! @param[out] min_value The value associated with the minimum key.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine priority_queue_pop(self, min_key, min_value)
+        class(PriorityQueue), intent(inout) :: self
+        real(kind=custom_real), intent(out) :: min_key
+        integer, intent(out) :: min_value
 
-    dag_add_edge = .true.
-    end function dag_add_edge
+        if (self%size == 0) then
+            print *, 'Error: Priority queue is empty!'
+            return
+        end if
 
+        ! The minimum element is the root (the first element)
+        min_key = self%keys(1)
+        min_value = self%values(1)
 
+        ! Move the last element to the root and "bubble down"
+        self%keys(1) = self%keys(self%size)
+        self%values(1) = self%values(self%size)
+        self%size = self%size - 1
+        call priority_queue_bubble_down(self)
+    end subroutine priority_queue_pop
 
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Helper function to "bubble up" the last element.
+    ! @param[inout] self The priority queue.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine priority_queue_bubble_up(self)
+        class(PriorityQueue), intent(inout) :: self
+        integer :: i, parent
+        real(kind=custom_real) :: temp_key
+        integer :: temp_value
 
+        i = self%size
+        parent = i / 2
 
+        ! Swap with parent until heap property is restored
+        do while (i > 1 .and. self%keys(i) < self%keys(parent))
+            ! Swap keys (real type)
+            temp_key = self%keys(i)
+            self%keys(i) = self%keys(parent)
+            self%keys(parent) = temp_key
+
+            ! Swap values (integer type)
+            temp_value = self%values(i)
+            self%values(i) = self%values(parent)
+            self%values(parent) = temp_value
+
+            i = parent
+            parent = i / 2
+        end do
+    end subroutine priority_queue_bubble_up
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Helper function to "bubble down" the root element.
+    ! @param[inout] self The priority queue.
+    ! ---------------------------------------------------------------------------------------------------
+    subroutine priority_queue_bubble_down(self)
+        class(PriorityQueue), intent(inout) :: self
+        integer :: i, left, right, smallest
+        real(kind=custom_real) :: temp_key
+        integer :: temp_value
+
+        i = 1
+
+        do while (2 * i <= self%size)
+            left = 2 * i
+            right = left + 1
+            smallest = i
+
+            ! Find the smallest child
+            if (self%keys(left) < self%keys(smallest)) smallest = left
+            if (right <= self%size .and. self%keys(right) < self%keys(smallest)) smallest = right
+
+            ! If the smallest child is smaller than the current node, swap
+            if (smallest /= i) then
+                ! Swap keys (real type)
+                temp_key = self%keys(i)
+                self%keys(i) = self%keys(smallest)
+                self%keys(smallest) = temp_key
+
+                ! Swap values (integer type)
+                temp_value = self%values(i)
+                self%values(i) = self%values(smallest)
+                self%values(smallest) = temp_value
+
+                i = smallest
+            else
+                exit
+            end if
+        end do
+    end subroutine priority_queue_bubble_down
 
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Resize a 1D array.
