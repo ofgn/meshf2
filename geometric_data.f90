@@ -52,73 +52,73 @@ contains
         class(GeometricData), intent(in) :: self                     ! Data structure to be reported
         integer(int32) :: i                                     ! Loop index
 
-        call report("------------------------[      MESHF INFO      ]------------------------"//new_line('A'))
-        call report("- Number of points/cells:       "//trim(itoa(self%n)))
+        call meshf_report("------------------------[      MESHF INFO      ]------------------------"//new_line('A'))
+        call meshf_report("- Number of points/cells:       "//trim(itoa(self%n)))
 
         ! Report integer scalar data if allocated
         if (allocated(self%scalar_integer)) then
-            call report("- Scalar fields (integer):      "//trim(itoa(size(self%scalar_integer_components, 1))))
+            call meshf_report("- Scalar fields (integer):      "//trim(itoa(size(self%scalar_integer_components, 1))))
             do i = 1, size(self%scalar_integer_labels)
-                call report("  * Label:                      "//trim(self%scalar_integer_labels(i)))
-                call report("  * Components:                 "//trim(itoa(self%scalar_integer_components(i))))
+                call meshf_report("  * Label:                      "//trim(self%scalar_integer_labels(i)))
+                call meshf_report("  * Components:                 "//trim(itoa(self%scalar_integer_components(i))))
             end do
         else
-            call report("- Scalar fields (integer):      "//"0 (unallocated)")
+            call meshf_report("- Scalar fields (integer):      "//"0 (unallocated)")
         end if
 
         ! Report real32 scalar data if allocated
         if (allocated(self%scalar_real32)) then
-            call report("- Scalar fields (real32):       "//trim(itoa(size(self%scalar_real32_components, 1))))
+            call meshf_report("- Scalar fields (real32):       "//trim(itoa(size(self%scalar_real32_components, 1))))
             do i = 1, size(self%scalar_real32_labels)
-                call report("  * Label:                      "//trim(self%scalar_real32_labels(i)))
-                call report("  * Components:                 "//trim(itoa(self%scalar_real32_components(i))))
+                call meshf_report("  * Label:                      "//trim(self%scalar_real32_labels(i)))
+                call meshf_report("  * Components:                 "//trim(itoa(self%scalar_real32_components(i))))
             end do
         else
-            call report("- Scalar fields (real32):       "//"0 (unallocated)")
+            call meshf_report("- Scalar fields (real32):       "//"0 (unallocated)")
         end if
 
         ! Report real64 scalar data if allocated
         if (allocated(self%scalar_real64)) then
-            call report("- Scalar fields (real64):       "//trim(itoa(size(self%scalar_real64_components, 1))))
+            call meshf_report("- Scalar fields (real64):       "//trim(itoa(size(self%scalar_real64_components, 1))))
             do i = 1, size(self%scalar_real64_labels)
-                call report("  * Label:                      "//trim(self%scalar_real64_labels(i)))
-                call report("  * Components:                 "//trim(itoa(self%scalar_real64_components(i))))
+                call meshf_report("  * Label:                      "//trim(self%scalar_real64_labels(i)))
+                call meshf_report("  * Components:                 "//trim(itoa(self%scalar_real64_components(i))))
             end do
         else
-            call report("- Scalar fields (real64):       "//"0 (unallocated)")
+            call meshf_report("- Scalar fields (real64):       "//"0 (unallocated)")
         end if
 
         ! Report integer vector data if allocated
         if (allocated(self%vector_integer)) then
-            call report("- Vector fields (integer):      "//trim(itoa(size(self%vector_integer_labels, 1))))
+            call meshf_report("- Vector fields (integer):      "//trim(itoa(size(self%vector_integer_labels, 1))))
             do i = 1, size(self%vector_integer_labels)
-                call report("  * Label:                      "//trim(self%vector_integer_labels(i)))
+                call meshf_report("  * Label:                      "//trim(self%vector_integer_labels(i)))
             end do
         else
-            call report("- Vector fields (integer):      "//"0 (unallocated)")
+            call meshf_report("- Vector fields (integer):      "//"0 (unallocated)")
         end if
 
         ! Report real32 vector data if allocated
         if (allocated(self%vector_real32)) then
-            call report("- Vector fields (real32):       "//trim(itoa(size(self%vector_real32_labels, 1))))
+            call meshf_report("- Vector fields (real32):       "//trim(itoa(size(self%vector_real32_labels, 1))))
             do i = 1, size(self%vector_real32_labels)
-                call report("  * Label:                      "//trim(self%vector_real32_labels(i)))
+                call meshf_report("  * Label:                      "//trim(self%vector_real32_labels(i)))
             end do
         else
-            call report("- Vector fields (real32):       "//"0 (unallocated)")
+            call meshf_report("- Vector fields (real32):       "//"0 (unallocated)")
         end if
 
         ! Report real64 vector data if allocated
         if (allocated(self%vector_real64)) then
-            call report("- Vector fields (real64):       "//trim(itoa(size(self%vector_real64_labels, 1))))
+            call meshf_report("- Vector fields (real64):       "//trim(itoa(size(self%vector_real64_labels, 1))))
             do i = 1, size(self%vector_real64_labels)
-                call report("  * Label:                      "//trim(self%vector_real64_labels(i)))
+                call meshf_report("  * Label:                      "//trim(self%vector_real64_labels(i)))
             end do
         else
-            call report("- Vector fields (real64):       "//"0 (unallocated)")
+            call meshf_report("- Vector fields (real64):       "//"0 (unallocated)")
         end if
 
-        call report("------------------------------------------------------------------------")
+        call meshf_report("------------------------------------------------------------------------")
     end subroutine info
 
     ! ---------------------------------------------------------------------------------------------------
@@ -214,30 +214,30 @@ contains
 
         open (newunit=unit, file=file_path, status="old", action="read", iostat=io_status)
         if (io_status .ne. 0) then
-            call report("ERROR: Failed to open file: "//trim(file_path), is_error=.true.)
+            call meshf_report("ERROR: Failed to open file: "//trim(file_path), is_error=.true.)
             stop
         end if
 
-        call report("------------------------[    MESHF FILE READ   ]------------------------"//new_line('A'))
-        call report("- File:                         "//trim(file_path))
-        call report("- Description:                  "//"Scalar data (real64)") 
+        call meshf_report("------------------------[    MESHF FILE READ   ]------------------------"//new_line('A'))
+        call meshf_report("- File:                         "//trim(file_path))
+        call meshf_report("- Description:                  "//"Scalar data (real64)") 
         ! call report("- Status:                       "//"Started")
 
         read (unit, *, iostat=io_status) n, n_scalars
         if (io_status .ne. 0) then
-            call report("ERROR: Error parsing file header.", is_error=.true.)
+            call meshf_report("ERROR: Error parsing file header.", is_error=.true.)
             stop
         end if
 
         if (n .ne. geometric_data%n) then
-            call report("ERROR: Mismatched number of points/cells.", is_error=.true.)
+            call meshf_report("ERROR: Mismatched number of points/cells.", is_error=.true.)
             stop
         end if
 
         allocate (scalar_real64(n_scalars, n))
         read (unit, *, iostat=io_status) (scalar_real64(1:n_scalars, i), i=1, n)
         if (io_status .ne. 0) then
-            call report("ERROR: Error parsing file data.", is_error=.true.)
+            call meshf_report("ERROR: Error parsing file data.", is_error=.true.)
             stop
         end if
 
@@ -246,8 +246,8 @@ contains
         deallocate (scalar_real64)
 
         call cpu_time(end_time)
-        call report("- Status:                       Completed in "&
+        call meshf_report("- Status:                       Completed in "&
             //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report("------------------------------------------------------------------------")
+        call meshf_report("------------------------------------------------------------------------")
     end subroutine read_scalar_real64
 end module geometric_data

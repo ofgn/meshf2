@@ -11,10 +11,11 @@ program test
     integer, allocatable :: edge(:)
     real(kind=custom_real) :: priority
     integer, allocatable :: extracted_value(:)
+    integer, allocatable :: array(:)
     integer :: i
     
 
-    path = '/home/oliver/example_mesh/'
+    path = '/srv/wrk/temp/ex/'
 
     node_file = trim(path) // 'inversion_mesh.1.node'
     ele_file = trim(path) // 'inversion_mesh.1.ele'
@@ -26,17 +27,18 @@ program test
     call m%write_vtk_legacy(trim(vtk_file))
 
     call t%initialise(m)
-    call t%build_adjacency_map()
+    call t%calculate_adjacency()
     call t%calculate_boundary()
     call t%build_edge_queue()
 
+    print*, t%uvw(1)
 
     ! do i = 1, 2000
     !     call t%edge_queue%pop(edge, priority)
     !     print *, edge, priority
     ! end do
 
-    print *, t%boundary(1)
+    ! print *, t%boundary(1)
 
 
     call m%reset()

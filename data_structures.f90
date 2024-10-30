@@ -23,6 +23,7 @@ module data_structures
         procedure :: contains => linked_list_contains           ! Check if an element exists in the list
         procedure :: clear => linked_list_clear                 ! Clear the list
         procedure :: print => linked_list_print                 ! Print the elements of the list
+        procedure :: get => linked_list_get                     ! Retrieve the elements as an integer array
     end type LinkedList
 
     ! ---------------------------------------------------------------------------------------------------
@@ -134,7 +135,7 @@ contains
         ! Allocate a new node for the value
         allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new node in list_prepend.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new node in list_prepend.", is_error=.true.)
             return
         end if
 
@@ -164,7 +165,7 @@ contains
         ! Allocate a new node for the value
         allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new node in list_insert.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new node in list_insert.", is_error=.true.)
             return
         end if
 
@@ -287,6 +288,36 @@ contains
     end subroutine linked_list_print
 
     ! ---------------------------------------------------------------------------------------------------
+    ! @brief Retrieve the elements of the linked list as an integer array.
+    ! @param[in] self The linked list.
+    ! @param[out] array An integer array containing all elements in the linked list.
+    ! ---------------------------------------------------------------------------------------------------
+    function linked_list_get(self) result(array)
+        implicit none
+        class(LinkedList), intent(in) :: self
+        integer(kind=custom_int), allocatable :: array(:)
+        type(ListNode), pointer :: current
+        integer(kind=custom_int) :: i
+
+        ! Check if the list is empty
+        if (self%size == 0) then
+            allocate(array(0))  ! Return an empty array
+            return
+        end if
+
+        ! Allocate the array with the size of the linked list
+        allocate(array(self%size))
+
+        ! Traverse the linked list and copy values into the array
+        current => self%head
+        do i = 1, self%size
+            array(i) = current%value
+            current => current%next
+        end do
+    end function linked_list_get
+
+
+    ! ---------------------------------------------------------------------------------------------------
     ! @brief Insert an element at the end of the circular linked list.
     ! @param[inout] self The circular linked list.
     ! @param[in] value The value to insert.
@@ -301,7 +332,7 @@ contains
         ! Allocate a new node
         allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new node in circular_linked_list_append.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new node in circular_linked_list_append.", is_error=.true.)
             return
         end if
 
@@ -337,7 +368,7 @@ contains
         ! Allocate a new node
         allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new node in circular_linked_list_prepend.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new node in circular_linked_list_prepend.", is_error=.true.)
             return
         end if
 
@@ -493,13 +524,13 @@ contains
         integer(kind=custom_int) :: alloc_stat                   ! Allocation status
 
         if (map_size .lt. 0) then
-            call report("Error (hash_map): Size must be a positive integer.", is_error=.true.)
+            call meshf_report("Error (hash_map): Size must be a positive integer.", is_error=.true.)
             return
         end if
 
         allocate (self%buckets(map_size), stat=alloc_stat)
         if (alloc_stat .ne. 0) then
-            call report("Error (hash_map): Failed to initialise hash map.", is_error=.true.)
+            call meshf_report("Error (hash_map): Failed to initialise hash map.", is_error=.true.)
             return
         end if
 
@@ -530,21 +561,21 @@ contains
         ! Compute hash index
         index = map_hash(key, self%size)
         if (index .eq. -1) then
-            call report("Error (hash_map): Invalid hash index.", is_error=.true.)
+            call meshf_report("Error (hash_map): Invalid hash index.", is_error=.true.)
             return
         end if
 
         ! Allocate a new node
         allocate (new_node, stat=alloc_stat)
         if (alloc_stat .ne. 0) then
-            call report("Error (hash_map): Failed to allocate new node.", is_error=.true.)
+            call meshf_report("Error (hash_map): Failed to allocate new node.", is_error=.true.)
             return
         end if
 
         ! Allocate and assign key
         allocate (new_node%key(size(key)), stat=alloc_stat)
         if (alloc_stat .ne. 0) then
-            call report("Error (hash_map): Failed to allocate key array.", is_error=.true.)
+            call meshf_report("Error (hash_map): Failed to allocate key array.", is_error=.true.)
             deallocate (new_node)
             return
         end if
@@ -553,7 +584,7 @@ contains
         ! Allocate and assign value (variable length)
         allocate (new_node%value(size(value)), stat=alloc_stat)
         if (alloc_stat .ne. 0) then
-            call report("Error (hash_map): Failed to allocate value array.", is_error=.true.)
+            call meshf_report("Error (hash_map): Failed to allocate value array.", is_error=.true.)
             deallocate (new_node%key)
             deallocate (new_node)
             return
@@ -591,7 +622,7 @@ contains
 
         index = map_hash(key, self%size)
         if (index .eq. -1) then
-            call report("Error (hash_map): Invalid hash index.", is_error=.true.)
+            call meshf_report("Error (hash_map): Invalid hash index.", is_error=.true.)
             return
         end if
 
@@ -638,7 +669,7 @@ contains
         index = map_hash(key, self%size)
 
         if (index .eq. -1) then
-            call report("Error (hash_map): Invalid hash index.", is_error=.true.)
+            call meshf_report("Error (hash_map): Invalid hash index.", is_error=.true.)
             return
         end if
 
@@ -652,7 +683,7 @@ contains
                     if (.not. allocated(value)) then
                         allocate (value(size(current_node%value)), stat=alloc_stat)
                         if (alloc_stat /= 0) then
-                            call report("Error (hash_map_find): Failed to allocate value array.", is_error=.true.)
+                            call meshf_report("Error (hash_map_find): Failed to allocate value array.", is_error=.true.)
                             return
                         end if
                     end if
@@ -709,13 +740,13 @@ contains
         integer :: alloc_stat                                   ! Allocation status
 
         if (new_size .lt. 0) then
-            call report("Error (hash_map): New size must be positive.", is_error=.true.)
+            call meshf_report("Error (hash_map): New size must be positive.", is_error=.true.)
             return
         end if
 
         allocate (new_buckets(new_size), stat=alloc_stat)
         if (alloc_stat .ne. 0) then
-            call report("Error (hash_map): Failed to allocate new buckets.", is_error=.true.)
+            call meshf_report("Error (hash_map): Failed to allocate new buckets.", is_error=.true.)
             return
         end if
 
@@ -728,7 +759,7 @@ contains
                 next_node => current_node%next
                 index = map_hash(current_node%key, new_size)
                 if (index .eq. -1) then
-                    call report("Error (hash_map): Invalid hash index during resize.", is_error=.true.)
+                    call meshf_report("Error (hash_map): Invalid hash index during resize.", is_error=.true.)
                     return
                 end if
                 ! Insert the node into the new bucket
@@ -757,7 +788,7 @@ contains
         integer(kind=custom_int) :: i                                     ! Loop index
 
         if (bucket_size .lt. 0) then
-            call report("Error (hash_map): Bucket size must be a positive integer.", is_error=.true.)
+            call meshf_report("Error (hash_map): Bucket size must be a positive integer.", is_error=.true.)
             map_hash = -1
             return
         end if
@@ -787,7 +818,7 @@ contains
         end if
 
         if (alloc_stat .ne. 0) then
-            call report("Error (set): Failed to initialise set.", is_error=.true.)
+            call meshf_report("Error (set): Failed to initialise set.", is_error=.true.)
             return
         end if
 
@@ -1074,7 +1105,7 @@ contains
         if (allocated(arr)) then
             allocate (temp_arr(size(arr)), stat=alloc_stat)
             if (alloc_stat /= 0) then
-                call report("Error: Failed to allocate temporary array in array_resize.", is_error=.true.)
+                call meshf_report("Error: Failed to allocate temporary array in array_resize.", is_error=.true.)
                 return
             end if
             temp_arr = arr
@@ -1084,11 +1115,11 @@ contains
         ! Allocate new array with new size
         allocate (arr(new_size), stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new array in array_resize.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new array in array_resize.", is_error=.true.)
             if (allocated(temp_arr)) then
                 allocate (arr(size(temp_arr)), stat=alloc_stat)
                 if (alloc_stat /= 0) then
-                    call report("Error: Failed to reallocate original array in array_resize.", is_error=.true.)
+                    call meshf_report("Error: Failed to reallocate original array in array_resize.", is_error=.true.)
                     deallocate (temp_arr)
                     return
                 end if
@@ -1130,7 +1161,7 @@ contains
         if (allocated(arr)) then
             allocate (temp_arr(min_rows, min_cols), stat=alloc_stat)
             if (alloc_stat /= 0) then
-                call report("Error: Failed to allocate temporary array in array2d_resize.", is_error=.true.)
+                call meshf_report("Error: Failed to allocate temporary array in array2d_resize.", is_error=.true.)
                 return
             end if
             temp_arr = arr(1:min_rows, 1:min_cols)
@@ -1140,11 +1171,11 @@ contains
         ! Allocate new array with new dimensions
         allocate (arr(new_rows, new_cols), stat=alloc_stat)
         if (alloc_stat /= 0) then
-            call report("Error: Failed to allocate new array in array2d_resize.", is_error=.true.)
+            call meshf_report("Error: Failed to allocate new array in array2d_resize.", is_error=.true.)
             if (allocated(temp_arr)) then
                 allocate (arr(size(temp_arr, dim=1), size(temp_arr, dim=2)), stat=alloc_stat)
                 if (alloc_stat /= 0) then
-                    call report("Error: Failed to reallocate original array in array2d_resize.", is_error=.true.)
+                    call meshf_report("Error: Failed to reallocate original array in array2d_resize.", is_error=.true.)
                     deallocate (temp_arr)
                     return
                 end if
@@ -1187,7 +1218,7 @@ contains
         else if (dim .eq. 2) then
             n = size(arr, dim=2)
         else
-            call report("Error: Invalid dimension specified. Please use 1 or 2.", is_error=.true.)
+            call meshf_report("Error: Invalid dimension specified. Please use 1 or 2.", is_error=.true.)
             return
         end if
 
@@ -1198,7 +1229,7 @@ contains
             ! Shuffle along the first dimension (rows)
             allocate (temp_row(size(arr, dim=2)), stat=alloc_stat)
             if (alloc_stat .ne. 0) then
-                call report("Error: Failed to allocate temp_row in permute_array2d.", is_error=.true.)
+                call meshf_report("Error: Failed to allocate temp_row in permute_array2d.", is_error=.true.)
                 return
             end if
             do i = n, 2, -1
@@ -1216,7 +1247,7 @@ contains
             ! Shuffle along the second dimension (columns)
             allocate (temp_col(size(arr, dim=1)), stat=alloc_stat)
             if (alloc_stat .ne. 0) then
-                call report("Error: Failed to allocate temp_col in permute_array2d.", is_error=.true.)
+                call meshf_report("Error: Failed to allocate temp_col in permute_array2d.", is_error=.true.)
                 return
             end if
             do i = n, 2, -1
