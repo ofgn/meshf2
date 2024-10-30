@@ -55,26 +55,31 @@ contains
 
         open (newunit=unit, file=file_path, status="old", action="read", iostat=io_status)
         if (io_status .ne. 0) then
-            call report("- Status:                       (ERROR) Failed to open file: "//trim(file_path), is_error=.true.)
+            call report("- Error:            " &
+                // "Failed to open file: " &
+             //trim(file_path), is_error=.true.)
             stop
         end if
 
-        call report("- File:                         "//trim(file_path))
+        call report("- File:             "//trim(file_path))
 
         ! Read header with number of points, dimensions, number of scalars, and id flag
         read (unit, *, iostat=io_status) self%n_points, n_dimensions, n_scalars, id_flag
         if (io_status .ne. 0) then
-            call report("- Status:                       (ERROR) Error parsing file header", is_error=.true.)
+            call report("- Error:            " &
+                // "Failed to parse file: " &
+             //trim(file_path), is_error=.true.)
             stop
         end if
 
         ! Validate dimensions and report
         if (n_dimensions .eq. 2) then
-            call report("- Description:                  "//"2D points (Triangle)")
+            call report("- Description:      "//"2D points (Triangle)")
         else if (n_dimensions .eq. 3) then
-            call report("- Description:                  "//"3D points (TetGen)")
+            call report("- Description:      "//"3D points (TetGen)")
         else
-            call report("- Status:                       (ERROR) Invalid number of dimensions", is_error=.true.)
+            call report("- Error:            " &
+                // "Invalid number of dimensions", is_error=.true.)
             stop
         end if
 
@@ -123,17 +128,18 @@ contains
             ! end if
 
             if (io_status .ne. 0) then
-                call report("- Status:                       (ERROR) Error reading point: "//trim(itoa(i)), is_error=.true.)
-                stop
+                call report("- Error:            " &
+                // "Reading points", is_error=.true.)
+            stop
             end if
         end do
 
         close (unit)
 
         call cpu_time(end_time)
-        call report("- Status:                       Completed in "&
-            //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report(divider)
+        call report("- Completed:        "// &
+                    trim(rtoa(end_time - start_time, decimal_places=4))// &
+                    "s" // lf)
     end subroutine read_tetgen_node
 
     ! ---------------------------------------------------------------------------------------------------
@@ -154,24 +160,29 @@ contains
         real(real64) :: start_time, end_time                            ! Timing variables
 
         if (.not. allocated(self%points)) then
-            call report("ERROR: Points array not allocated.", is_error=.true.)
+            call report("Error:              " &
+                // "Points array not allocated.", is_error=.true.)
             stop
         end if
 
         call cpu_time(start_time)
         open (newunit=unit, file=file_path, status="old", action="read", iostat=io_status)
         if (io_status .ne. 0) then
-            call report("- Status:                       (ERROR) Failed to open file: "//trim(file_path), is_error=.true.)
+            call report("- Error:            " &
+                // "Failed to open file: " &
+             //trim(file_path), is_error=.true.)
             stop
         end if
 
         call report(banner("FILE READ"))
-        call report("- File:                         "//trim(file_path))
+        call report("- File:             "//trim(file_path))
         ! call report("- Status:                       "//"Started")
 
         read (unit, *, iostat=io_status) self%n_cells, points_per_cell, id_flag
         if (io_status .ne. 0) then
-            call report("- Status:                       (ERROR) Error parsing file header", is_error=.true.)
+            call report("- Error:            " &
+                // "Failed to parse file: " &
+             //trim(file_path), is_error=.true.)
             stop
         end if
 
@@ -181,15 +192,16 @@ contains
 
         if (points_per_cell .eq. 3) then
             self%cell_types = 5
-            call report("- Description:                  "//"Unstructured grid (Triangle)")
+            call report("- Description:      "//"Unstructured grid (Triangle)")
         else if (points_per_cell .eq. 4) then
             self%cell_types = 10
-            call report("- Description:                  "//"Unstructured grid (TetGen, linear)")
+            call report("- Description:      "//"Unstructured grid (TetGen, linear)")
         else if (points_per_cell .eq. 10) then
             self%cell_types = 24
-            call report("- Description:                  "//"Unstructured grid (TetGen, quadratic)")
+            call report("- Description:      "//"Unstructured grid (TetGen, quadratic)")
         else
-            call report("- Status:                       (ERROR) Invalid number of points per cell", is_error=.true.)
+            call report("- Error:            " &
+                // "Invalid number of points per cell", is_error=.true.)
             stop
         end if
 
@@ -228,9 +240,9 @@ contains
         close (unit)
 
         call cpu_time(end_time)
-        call report("- Status:                       Completed in "&
-            //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report(divider)
+        call report("- Completed:        "// &
+                    trim(rtoa(end_time - start_time, decimal_places=4))// &
+                    "s" // lf)
     end subroutine read_tetgen_ele
 
     ! ---------------------------------------------------------------------------------------------------
@@ -271,17 +283,19 @@ contains
         end if
 
         if (io_status .ne. 0) then
-            call report("ERROR: Failed to open file: "//trim(file_path), is_error=.true.)
+            call report("- Error:            " &
+                // "Failed to open file: " &
+             //trim(file_path), is_error=.true.)
             stop
         end if
 
         call report(banner("FILE WRITE"))
-        call report("- File:                         "//trim(file_path))
+        call report("- File:             "//trim(file_path))
             ! Determine file format (ASCII or binary)
         if (binary) then
-            call report("- Format:                       "//"Binary")
+            call report("- Format:           "//"Binary")
         else
-            call report("- Format:                       "//"ASCII")
+            call report("- Format:           "//"ASCII")
         end if
 
         ! Allocate the full connectivity array
@@ -342,9 +356,9 @@ contains
         call cpu_time(end_time)
         close (unit)
 
-        call report("- Status:                       Completed in "&
-            //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report(divider)
+        call report("- Completed:        "// &
+                    trim(rtoa(end_time - start_time, decimal_places=4))// &
+                    "s" // lf)
     end subroutine write_vtk_legacy
 
     ! ---------------------------------------------------------------------------------------------------
@@ -368,13 +382,13 @@ contains
         logical, allocatable :: connectivity_mask(:)                        ! Masks for connectivity
 
         call cpu_time(start_time)
-        call report(banner("BLANKING"))
-        call report("- Status:                       Started")
-        call report("- Description:                  "//"Blanking grid based on a point mask") 
+        call report(banner("OPERATION"))
+        call report("- Description:      "//"Blanking grid based on a point mask") 
 
         if (size(point_mask) .ne. self%n_points) then
-            call report("ERROR: Mask size does not match number of points.", is_error=.true.)
-            stop
+            call report("Error:              " &
+            // "Mask size does not match number of points.", is_error=.true.)
+            
         end if
 
         allocate(cell_mask(self%n_cells), connectivity_mask(size(self%cell_connectivity)))
@@ -421,16 +435,16 @@ contains
         self%points_per_cell = new_points_per_cell
         self%cell_types = new_cell_types
 
-        call report("- Points prior:                 "//trim(itoa(self%n_points)))
+        call report("- Points prior:     "//trim(itoa(self%n_points)))
         self%n_points = new_n_points
-        call report("- Points after:                 "//trim(itoa(new_n_points)))
-        call report("- Cells prior:                  "//trim(itoa(self%n_cells)))
+        call report("- Points after:     "//trim(itoa(new_n_points)))
+        call report("- Cells prior:      "//trim(itoa(self%n_cells)))
         self%n_cells = new_n_cells
-        call report("- Cells after:                  "//trim(itoa(new_n_cells)))
+        call report("- Cells after:      "//trim(itoa(new_n_cells)))
         call cpu_time(end_time)
-        call report("- Status:                       Completed in "&
-            //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report(divider)
+        call report("- Completed:        "// &
+                    trim(rtoa(end_time - start_time, decimal_places=4))// &
+                    "s" // lf)
     end subroutine blank_on_point_mask
 
     ! ---------------------------------------------------------------------------------------------------
@@ -454,12 +468,13 @@ contains
         logical, allocatable :: connectivity_mask(:)                        ! Masks for connectivity
 
         call cpu_time(start_time)
-        call report(banner("BLANKING"))
-        call report("- Description:                  "//"Blanking grid based on a cell mask") 
+        call report(banner("OPERATION"))
+        call report("- Description:      "//"Blanking grid based on a cell mask") 
         ! call report("- Status:                       "//"Started")
 
         if (size(cell_mask) .ne. self%n_cells) then
-            call report("ERROR: Mask size does not match number of cells.", is_error=.true.)
+            call report("Error:              " &
+            // "Mask size does not match number of cells.", is_error=.true.)
             stop
         end if
 
@@ -504,16 +519,16 @@ contains
         self%points_per_cell = new_points_per_cell
         self%cell_types = new_cell_types
 
-        call report("- Points prior:                 "//trim(itoa(self%n_points)))
+        call report("- Points prior:     "//trim(itoa(self%n_points)))
         self%n_points = new_n_points
-        call report("- Points after:                 "//trim(itoa(new_n_points)))
-        call report("- Cells prior:                  "//trim(itoa(self%n_cells)))
+        call report("- Points after:     "//trim(itoa(new_n_points)))
+        call report("- Cells prior:      "//trim(itoa(self%n_cells)))
         self%n_cells = new_n_cells
-        call report("- Cells after:                  "//trim(itoa(new_n_cells)))
+        call report("- Cells after:      "//trim(itoa(new_n_cells)))
         call cpu_time(end_time)
-        call report("- Status:                       Completed in "&
-            //trim(rtoa(end_time - start_time, decimal_places=4))//" seconds")
-        call report(divider)
+        call report("- Completed:        "// &
+                    trim(rtoa(end_time - start_time, decimal_places=4))// &
+                    "s" // lf)
     end subroutine blank_on_cell_mask
 
     ! ---------------------------------------------------------------------------------------------------
@@ -525,8 +540,6 @@ contains
 
         class(UnstructuredGrid), intent(inout) :: self                      ! The unstructured grid to clear
 
-        call report(banner("CLEARING"))
-        call report("- Status:                       Started")
 
         deallocate(self%points)
         deallocate(self%points_per_cell)
@@ -536,8 +549,6 @@ contains
         self%n_points = 0
         self%n_cells = 0
 
-        call report("- Status:                       Completed")
-        call report(divider)
     end subroutine reset
 
     ! subroutine build_edges_tetrahedral(self)

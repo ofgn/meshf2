@@ -33,6 +33,36 @@ contains
         end if
     end subroutine report
 
+    subroutine report2(message1, message2, is_error)
+        use iso_fortran_env, only: output_unit, error_unit
+        implicit none
+
+        character(len=*), intent(in) :: message1, message2                      ! Message to log
+        logical, intent(in), optional :: is_error                               ! Flag for logging to stderr (optional)
+        integer(int32) :: hspace                                                ! Horizontal space
+        
+        if (len_trim(message1) > 32) then
+            call report(message2, is_error)
+        end if
+
+        hspace = 32 - len_trim(message1)
+        if (present(is_error)) then
+            if (is_error) then
+                write (error_unit, "(a)") trim(message1) // &                   ! Log to stderr            
+                    repeat(' ', hspace) // &
+                    trim(message2)                                         
+            else
+                write (output_unit, "(a)") trim(message1) // &                  ! Log to stdout
+                    repeat(' ', hspace) // &
+                    trim(message2)                                         
+            end if
+        else
+            write (output_unit, "(a)") trim(message1) // &                  ! Log to stdout
+                repeat(' ', hspace) // &
+                trim(message2)                                         
+        end if
+    end subroutine report2
+
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Convert an integer to a character string.
     ! @param[in] value The integer value to convert.

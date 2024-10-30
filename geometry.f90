@@ -27,15 +27,15 @@ contains
         real(real128) :: orientation
         real(real128) :: ax, ay, az, bx, by, bz, cx, cy, cz
 
-        ax = a(1) - d(1)
-        ay = a(2) - d(2)
-        az = a(3) - d(3)
-        bx = b(1) - d(1)
-        by = b(2) - d(2)
-        bz = b(3) - d(3)
-        cx = c(1) - d(1)
-        cy = c(2) - d(2)
-        cz = c(3) - d(3)
+        ax = real(a(1), kind=real128) - real(d(1), kind=real128)
+        ay = real(a(2), kind=real128) - real(d(2), kind=real128)
+        az = real(a(3), kind=real128) - real(d(3), kind=real128)
+        bx = real(b(1), kind=real128) - real(d(1), kind=real128)
+        by = real(b(2), kind=real128) - real(d(2), kind=real128)
+        bz = real(b(3), kind=real128) - real(d(3), kind=real128)
+        cx = real(c(1), kind=real128) - real(d(1), kind=real128)
+        cy = real(c(2), kind=real128) - real(d(2), kind=real128)
+        cz = real(c(3), kind=real128) - real(d(3), kind=real128)
 
         orientation = ax * (by * cz - bz * cy) &
             - ay * (bx * cz - bz * cx) &

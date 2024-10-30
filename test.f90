@@ -8,9 +8,13 @@ program test
     character(len=256) :: node_file, ele_file, vtk_file, vtk_file2, path
     type(UnstructuredGrid) :: m
     type(TetrahedralMesh) :: t
-    type(PriorityQueue) :: pq
+    integer, allocatable :: edge(:)
+    real(kind=custom_real) :: priority
+    integer, allocatable :: extracted_value(:)
+    integer :: i
+    
 
-    path = '/srv/wrk/temp/meshf/example_mesh/'
+    path = '/home/oliver/example_mesh/'
 
     node_file = trim(path) // 'inversion_mesh.1.node'
     ele_file = trim(path) // 'inversion_mesh.1.ele'
@@ -20,15 +24,24 @@ program test
     call m%read_tetgen_node(node_file)
     call m%read_tetgen_ele(ele_file)
     call m%write_vtk_legacy(trim(vtk_file))
-    ! call m%write_vtk_legacy(trim(trim(path) // 'bin.vtk'))
 
     call t%initialise(m)
-    call m%reset()
-    ! call t%adjacent_list(32010)%print()
-    call t%half_edge_collapse(32010, 2614)
-    call t%to_unstructured_grid(m)
-    
+    call t%build_adjacency_map()
+    call t%calculate_boundary()
+    call t%build_edge_queue()
 
+
+    ! do i = 1, 2000
+    !     call t%edge_queue%pop(edge, priority)
+    !     print *, edge, priority
+    ! end do
+
+    print *, t%boundary(1)
+
+
+    call m%reset()
+
+    call t%export_u_grid(m)
     call m%write_vtk_legacy(trim(vtk_file2))
 
 end program test

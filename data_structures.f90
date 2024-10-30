@@ -60,7 +60,7 @@ module data_structures
         procedure :: initialise => hash_map_initialise          ! Initialise the hash map
         procedure :: insert => hash_map_insert                  ! Insert a key-value pair
         procedure :: delete => hash_map_delete                  ! Delete a key-value pair
-        procedure :: get => hash_map_get                      ! Find a value by key
+        procedure :: get => hash_map_get                        ! Find a value by key
         procedure :: clear => hash_map_clear                    ! Clear the hash map
         procedure :: resize => hash_map_resize                  ! Resize the hash map
     end type HashMap
@@ -96,19 +96,26 @@ module data_structures
     end type Set
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Defines a priority queue.
+    ! @brief Defines a min-heap (priority queue).
     ! ---------------------------------------------------------------------------------------------------
-    type :: PriorityQueue
-        real(kind=custom_real), allocatable :: keys(:)  ! Priorities (real type)
-        integer, allocatable :: values(:)               ! Associated values (optional)
-        integer :: size     ! Current number of elements in the queue
-        integer :: capacity ! Maximum capacity of the queue
+    type :: MinHeap
+        type(MinHeapElement), allocatable :: elements(:)            ! Array of elements (priority and value)
+        integer :: count                                            ! Current number of elements in the heap
+        integer :: size                                             ! Maximum capacity of the heap
     contains
-        procedure :: initialise => priority_queue_initialise
-        procedure :: insert => priority_queue_insert
-        procedure :: pop => priority_queue_pop
-        procedure :: is_empty => priority_queue_is_empty
-    end type PriorityQueue
+        procedure :: initialise => min_heap_initialise
+        procedure :: insert => min_heap_insert
+        procedure :: pop => min_heap_pop
+        procedure :: is_empty => min_heap_is_empty
+    end type MinHeap
+
+    ! ---------------------------------------------------------------------------------------------------
+    ! @brief Defines an element in the min-heap, consisting of a priority and a variable-sized integer array.
+    ! ---------------------------------------------------------------------------------------------------
+    type :: MinHeapElement
+        real(kind=custom_real) :: Priority          ! Priority of the element
+        integer, allocatable :: value(:)       ! Associated variable-sized integer array
+    end type MinHeapElement
 
 contains
 
@@ -125,7 +132,7 @@ contains
         integer :: alloc_stat
 
         ! Allocate a new node for the value
-        allocate(new_node, stat=alloc_stat)
+        allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
             call report("Error: Failed to allocate new node in list_prepend.", is_error=.true.)
             return
@@ -155,7 +162,7 @@ contains
         integer :: alloc_stat
 
         ! Allocate a new node for the value
-        allocate(new_node, stat=alloc_stat)
+        allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
             call report("Error: Failed to allocate new node in list_insert.", is_error=.true.)
             return
@@ -196,7 +203,7 @@ contains
         if (self%head%value == value) then
             current => self%head
             self%head => current%next
-            deallocate(current)
+            deallocate (current)
             self%size = self%size - 1
             return
         end if
@@ -207,7 +214,7 @@ contains
         do while (associated(current))
             if (current%value == value) then
                 previous%next => current%next
-                deallocate(current)
+                deallocate (current)
                 self%size = self%size - 1
                 return
             end if
@@ -251,7 +258,7 @@ contains
         current => self%head
         do while (associated(current))
             next_node => current%next
-            deallocate(current)
+            deallocate (current)
             current => next_node
         end do
         self%head => null()
@@ -292,7 +299,7 @@ contains
         integer :: alloc_stat
 
         ! Allocate a new node
-        allocate(new_node, stat=alloc_stat)
+        allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
             call report("Error: Failed to allocate new node in circular_linked_list_append.", is_error=.true.)
             return
@@ -328,7 +335,7 @@ contains
         integer :: alloc_stat
 
         ! Allocate a new node
-        allocate(new_node, stat=alloc_stat)
+        allocate (new_node, stat=alloc_stat)
         if (alloc_stat /= 0) then
             call report("Error: Failed to allocate new node in circular_linked_list_prepend.", is_error=.true.)
             return
@@ -391,7 +398,7 @@ contains
             else
                 previous%next => current%next
             end if
-            deallocate(current)
+            deallocate (current)
             self%size = self%size - 1
 
             ! If the list becomes empty
@@ -455,19 +462,19 @@ contains
         implicit none
         class(CircularLinkedList), intent(inout) :: self
         type(ListNode), pointer :: current, next_node
-    
+
         if (.not. associated(self%head)) return
-    
+
         ! Break the cycle
         self%tail%next => null()
-    
+
         current => self%head
         do while (associated(current))
             next_node => current%next
-            deallocate(current)
+            deallocate (current)
             current => next_node
         end do
-    
+
         self%head => null()
         self%tail => null()
         self%size = 0
@@ -873,149 +880,182 @@ contains
     end subroutine set_clear
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Initialise the priority queue.
-    ! @param[inout] self The priority queue to initialise.
-    ! @param[in] capacity The initial capacity of the queue.
+    ! @brief Initialise the min-heap.
+    ! @param[inout] self The min-heap to initialise.
+    ! @param[in] capacity The initial capacity of the heap.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine priority_queue_initialise(self, capacity)
-        class(PriorityQueue), intent(inout) :: self
-        integer, intent(in) :: capacity
-        
-        self%capacity = capacity
-        self%size = 0
-        allocate(self%keys(capacity))
-        allocate(self%values(capacity))
-    end subroutine priority_queue_initialise
+    subroutine min_heap_initialise(self, capacity)
+        implicit none
+        class(MinHeap), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: capacity
+
+        self%size = capacity
+        self%count = 0
+        allocate (self%elements(capacity))
+    end subroutine min_heap_initialise
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Check if the priority queue is empty.
-    ! @param[in] self The priority queue.
-    ! @return is_empty Flag indicating if the queue is empty.
+    ! @brief Check if the min-heap is empty.
+    ! @param[in] self The min-heap.
+    ! @return is_empty Flag indicating if the heap is empty.
     ! ---------------------------------------------------------------------------------------------------
-    logical function priority_queue_is_empty(self)
-        class(PriorityQueue), intent(in) :: self
-        priority_queue_is_empty = (self%size == 0)
-    end function priority_queue_is_empty
+    logical function min_heap_is_empty(self)
+        implicit none
+        class(MinHeap), intent(in) :: self
+        min_heap_is_empty = (self%count == 0)
+    end function min_heap_is_empty
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Insert an element into the priority queue.
-    ! @param[inout] self The priority queue.
-    ! @param[in] key The priority of the element.
-    ! @param[in] value The value to insert.
+    ! @brief Insert an element into the min-heap.
+    ! @param[inout] self The min-heap.
+    ! @param[in] priority The priority of the element.
+    ! @param[in] value The integer(kind=custom_int) array to insert.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine priority_queue_insert(self, key, value)
-        class(PriorityQueue), intent(inout) :: self
-        real(kind=custom_real), intent(in) :: key
-        integer, intent(in) :: value
+    subroutine min_heap_insert(self, value, priority)
+        implicit none
+        class(MinHeap), intent(inout) :: self
+        real(kind=custom_real), intent(in) :: priority
+        integer(kind=custom_int), intent(in) :: value(:)
+        integer(kind=custom_int) :: i, alloc_stat
 
-        if (self%size >= self%capacity) then
-            print *, 'Error: Priority queue is full!'
+        if (self%count >= self%size) then
+            print *, 'Error: MinHeap is full!'
             return
         end if
 
-        ! Insert at the end and then "bubble up" to maintain heap property
-        self%size = self%size + 1
-        self%keys(self%size) = key
-        self%values(self%size) = value
-        call priority_queue_bubble_up(self)
-    end subroutine priority_queue_insert
+        ! Insert at the end
+        self%count = self%count + 1
+        i = self%count
+        self%elements(i)%priority = priority
+        allocate (self%elements(i)%value(size(value)), stat=alloc_stat)
+        if (alloc_stat /= 0) then
+            print *, 'Error: Failed to allocate memory for value array!'
+            self%count = self%count - 1
+            return
+        end if
+        self%elements(i)%value = value
+
+        ! Bubble up to maintain heap property
+        call min_heap_bubble_up(self, i)
+    end subroutine min_heap_insert
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Extract the minimum element from the priority queue.
-    ! @param[inout] self The priority queue.
-    ! @param[out] min_key The minimum key.
-    ! @param[out] min_value The value associated with the minimum key.
+    ! @brief Extract the minimum element from the min-heap.
+    ! @param[inout] self The min-heap.
+    ! @param[out] priority The minimum priority.
+    ! @param[out] value The value associated with the minimum priority.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine priority_queue_pop(self, min_key, min_value)
-        class(PriorityQueue), intent(inout) :: self
-        real(kind=custom_real), intent(out) :: min_key
-        integer, intent(out) :: min_value
+    subroutine min_heap_pop(self, value, priority)
+        implicit none
+        class(MinHeap), intent(inout) :: self
+        real(kind=custom_real), intent(out) :: priority
+        integer(kind=custom_int), allocatable, intent(out) :: value(:)
+        integer(kind=custom_int) :: last, alloc_stat
+        type(MinHeapElement) :: temp_element
 
-        if (self%size == 0) then
-            print *, 'Error: Priority queue is empty!'
+        if (self%count == 0) then
+            print *, 'Error: MinHeap is empty!'
             return
         end if
 
         ! The minimum element is the root (the first element)
-        min_key = self%keys(1)
-        min_value = self%values(1)
+        priority = self%elements(1)%priority
+        allocate (value(size(self%elements(1)%value)), stat=alloc_stat)
+        if (alloc_stat /= 0) then
+            print *, 'Error: Failed to allocate memory for extracted value!'
+            return
+        end if
+        value = self%elements(1)%value
 
-        ! Move the last element to the root and "bubble down"
-        self%keys(1) = self%keys(self%size)
-        self%values(1) = self%values(self%size)
-        self%size = self%size - 1
-        call priority_queue_bubble_down(self)
-    end subroutine priority_queue_pop
+        if (self%count == 1) then
+            self%count = 0
+            return
+        end if
+
+        ! Swap the root with the last element
+        last = self%count
+        temp_element = self%elements(1)
+        self%elements(1) = self%elements(last)
+        self%elements(last) = temp_element
+
+        ! Deallocate the value of the last element to prevent memory leaks
+        deallocate (self%elements(last)%value)
+
+        self%count = self%count - 1
+
+        ! Bubble down to maintain heap property
+        call min_heap_bubble_down(self, 1)
+    end subroutine min_heap_pop
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Helper function to "bubble up" the last element.
-    ! @param[inout] self The priority queue.
+    ! @brief Helper function to "bubble up" an element at a given index.
+    ! @param[inout] self The min-heap.
+    ! @param[in] start_i The starting index of the element to bubble up.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine priority_queue_bubble_up(self)
-        class(PriorityQueue), intent(inout) :: self
-        integer :: i, parent
-        real(kind=custom_real) :: temp_key
-        integer :: temp_value
+    subroutine min_heap_bubble_up(self, start_i)
+        implicit none
+        class(MinHeap), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: start_i
+        integer(kind=custom_int) :: current_i, parent
+        type(MinHeapElement) :: temp_element
 
-        i = self%size
-        parent = i / 2
+        current_i = start_i
+        parent = current_i/2
 
         ! Swap with parent until heap property is restored
-        do while (i > 1 .and. self%keys(i) < self%keys(parent))
-            ! Swap keys (real type)
-            temp_key = self%keys(i)
-            self%keys(i) = self%keys(parent)
-            self%keys(parent) = temp_key
+        do while (current_i > 1 .and. self%elements(current_i)%priority < self%elements(parent)%priority)
+            ! Swap elements
+            temp_element = self%elements(current_i)
+            self%elements(current_i) = self%elements(parent)
+            self%elements(parent) = temp_element
 
-            ! Swap values (integer type)
-            temp_value = self%values(i)
-            self%values(i) = self%values(parent)
-            self%values(parent) = temp_value
-
-            i = parent
-            parent = i / 2
+            ! Update current and parent indices
+            current_i = parent
+            parent = current_i/2
         end do
-    end subroutine priority_queue_bubble_up
+    end subroutine min_heap_bubble_up
 
     ! ---------------------------------------------------------------------------------------------------
-    ! @brief Helper function to "bubble down" the root element.
-    ! @param[inout] self The priority queue.
+    ! @brief Helper function to "bubble down" an element at a given index.
+    ! @param[inout] self The min-heap.
+    ! @param[in] start_i The starting index of the element to bubble down.
     ! ---------------------------------------------------------------------------------------------------
-    subroutine priority_queue_bubble_down(self)
-        class(PriorityQueue), intent(inout) :: self
-        integer :: i, left, right, smallest
-        real(kind=custom_real) :: temp_key
-        integer :: temp_value
+    subroutine min_heap_bubble_down(self, start_i)
+        implicit none
+        class(MinHeap), intent(inout) :: self
+        integer(kind=custom_int), intent(in) :: start_i
+        integer(kind=custom_int) :: current_i, left, right, smallest
+        type(MinHeapElement) :: temp_element
 
-        i = 1
+        current_i = start_i
 
-        do while (2 * i <= self%size)
-            left = 2 * i
+        do while (2*current_i <= self%count)
+            left = 2*current_i
             right = left + 1
-            smallest = i
+            smallest = current_i
 
             ! Find the smallest child
-            if (self%keys(left) < self%keys(smallest)) smallest = left
-            if (right <= self%size .and. self%keys(right) < self%keys(smallest)) smallest = right
+            if (self%elements(left)%priority < self%elements(smallest)%priority) then
+                smallest = left
+            end if
+            if (right <= self%count .and. self%elements(right)%priority < self%elements(smallest)%priority) then
+                smallest = right
+            end if
 
             ! If the smallest child is smaller than the current node, swap
-            if (smallest /= i) then
-                ! Swap keys (real type)
-                temp_key = self%keys(i)
-                self%keys(i) = self%keys(smallest)
-                self%keys(smallest) = temp_key
+            if (smallest /= current_i) then
+                ! Swap elements
+                temp_element = self%elements(current_i)
+                self%elements(current_i) = self%elements(smallest)
+                self%elements(smallest) = temp_element
 
-                ! Swap values (integer type)
-                temp_value = self%values(i)
-                self%values(i) = self%values(smallest)
-                self%values(smallest) = temp_value
-
-                i = smallest
+                ! Update current index to the smallest child
+                current_i = smallest
             else
                 exit
             end if
         end do
-    end subroutine priority_queue_bubble_down
+    end subroutine min_heap_bubble_down
 
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Resize a 1D array.
@@ -1127,7 +1167,7 @@ contains
     ! ---------------------------------------------------------------------------------------------------
     ! @brief Randomly permute the rows or columns of a 2D array along a specified dimension.
     ! @detail The subroutine uses the Fisher-Yates shuffle algorithm to randomly permute
-    !         the rows or columns of the input 2D array `arr` in-place along the specified dimension.
+    !         the rows or columns of the input 2D array  in-place along the specified dimension.
     ! @param[inout] arr The 2D array to be permuted.
     ! @param[in] dim The dimension along which to perform the permutation (1 for rows, 2 for columns).
     ! ---------------------------------------------------------------------------------------------------
