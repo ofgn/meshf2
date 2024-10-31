@@ -1,6 +1,6 @@
 FC = ifx
 TARGET = test
-SRCS = global.f90 geometry.f90 utility.f90 data_structures.f90 geometric_data.f90 unstructured_grid.f90 tetrahedral.F90 test.f90
+SRCS = global.F90 geometry.F90 utility.F90 data_structures.F90 geometric_data.F90 unstructured_grid.F90 tetrahedral.F90 test.F90
 OBJS = $(SRCS:.f90=.o)
 OBJS := $(OBJS:.F90=.o)
 MOD_FILES = $(SRCS:.f90=.mod)

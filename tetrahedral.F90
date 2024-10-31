@@ -70,8 +70,9 @@ contains
         real(real64) :: start_time, end_time                                    ! Timing variables
 
         call cpu_time(start_time)
-        call meshf_report(banner("OPERATION"))
-        call meshf_report("- Description:      "//"Initialising mesh data structure")
+        call meshf_title("OPERATION")
+        call meshf_now()
+        call meshf_status("Description", "Initialising tetrahedral mesh")
 
         self%n_vertices = u_grid%n_points
         self%n_tetra = u_grid%n_cells
@@ -83,9 +84,7 @@ contains
             [4, self%n_tetra]) + 1
 
         call cpu_time(end_time)
-        call meshf_report("- Completed:        "// &
-                    trim(rtoa(end_time - start_time, decimal_places=4))// &
-                    "s" // lf)
+        call meshf_runtime(end_time - start_time)
     end subroutine initialise_tetrahedral_mesh
 
     ! ---------------------------------------------------------------------------------------------------
@@ -106,8 +105,9 @@ contains
         real(real64) :: start_time, end_time                                    ! Timing variables
 
         call cpu_time(start_time)
-        call meshf_report(banner("OPERATION"))
-        call meshf_report("- Description:      "//"Building adjacency map")
+        call meshf_title("OPERATION")
+        call meshf_now()
+        call meshf_status("Description", "Calculating cell adjacency information")
 
         call self%adjacency_map%initialise(4*self%n_tetra)
         allocate(self%adjacency_list(self%n_vertices))
@@ -120,7 +120,7 @@ contains
             w = self%tetrahedra(3, i)
             x = self%tetrahedra(4, i)
 
-            ! Calculate orientation and adjust vertices if necessary
+            ! Calculate orientation of tetrahedra and adjust vertices if necessary
             orientation = orientation3d(self%vertices(:, u), self%vertices(:, v), &
                 self%vertices(:, w), self%vertices(:, x))
 
@@ -134,7 +134,6 @@ contains
             call self%adjacency_map%insert([u, x, v], [i])
             call self%adjacency_map%insert([u, w, x], [i])
             call self%adjacency_map%insert([v, x, w], [i])
-
 
             call self%adjacency_list(u)%append(i)
             call self%adjacency_list(v)%append(i)
@@ -166,7 +165,8 @@ contains
         real(real64) :: start_time, end_time                                    ! Timing variables
     
         call cpu_time(start_time)
-        call meshf_report(banner("OPERATION"))
+        call meshf_title("OPERATION")
+        call meshf_now()
         call meshf_report("- Description:      "//"Building edge queue")
 
         call self%edge_queue%initialise(6*self%n_tetra)
@@ -407,7 +407,7 @@ contains
         integer :: num_threads                                                  ! Number of threads for parallel run
 
         call cpu_time(start_time)
-        call meshf_report(banner("OPERATION"))
+        call meshf_title("OPERATION")
         call meshf_report("- Description:      "//"Calculating boundary vertices")
 
         if (self%adjacency_map%count == 0) then
@@ -493,7 +493,7 @@ contains
         real(real64) :: start_time, end_time                                    ! Timing variables
 
         call cpu_time(start_time)
-        call meshf_report(banner("OPERATION"))
+        call meshf_title("OPERATION")
         call meshf_report("- Description:      "//"Calculating domain error")
 
         error = 0.0
